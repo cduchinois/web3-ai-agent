@@ -37,7 +37,8 @@ class Api {
         //     'calldata': '0x1238291372819378291372891321932132132132131231231232131'
         //     'chainid': 1
         // }
-        this.post('talk', { message, chainId })
+        console.log("chaindId", chainId)
+        this.post('json', { message, chainId })
             .then(response => {
                 console.log(response);
                 if (!response.to || !response.calldata) {

@@ -1,4 +1,6 @@
+import React from "react";
 import Api from '../reducers/api';
+
 export function ChatBar(props: any) {
   const chainId = props.chainId;
   const api = new Api();
