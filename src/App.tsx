@@ -1,6 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import './App.css';
+import ConnectButton from './components/ConnectButton';
+import Wallet from './components/Wallet';
+import {ThirdwebProvider} from "thirdweb/react";
+import Api from "./reducers/api";
+import { ethereum } from "thirdweb/chains";
+const api = new Api();
+
+interface MessageContainerProps {
+  sender: string;
+}
 
 const AppWrapper = styled.div`
   min-height: 100vh;
@@ -59,21 +69,6 @@ const FeatureItem = styled.li`
   margin-bottom: 10px;
 `;
 
-const ConnectButton = styled.button`
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #1e90ff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-
-  &:hover {
-    background-color: #1873cc;
-  }
-`;
-
 const WalletInfo = styled.div`
   color: #ffffff;
   font-size: 16px;
@@ -93,14 +88,14 @@ const ChatBox = styled.div`
   margin-bottom: 20px; // Add some space between ChatBox and InputArea
 `;
 
-const MessageContainer = styled.div`
+const MessageContainer = styled.div<MessageContainerProps>`
   display: flex;
   flex-direction: ${props => props.sender === 'user' ? 'row-reverse' : 'row'};
   align-items: flex-start;
   margin-bottom: 10px;
 `;
 
-const Message = styled.div`
+const Message = styled.div<MessageContainerProps>`
   max-width: 70%;
   padding: 12px 18px;
   border-radius: 20px;
@@ -236,11 +231,12 @@ const LoadingDots = styled.span`
 `;
 
 function App() {
-  const [account, setAccount] = useState(null);
-  const [balance, setBalance] = useState(null);
+  const [account, setAccount] = useState("");
+  const [balance, setBalance] = useState("");
+  const [chain, setChain] = useState(ethereum);
   const [showPopup, setShowPopup] = useState(false);
   const [showSwapPopup, setShowSwapPopup] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([{ text: "Hello! 👋", sender: 'agent' }]);
   const [input, setInput] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [typingText, setTypingText] = useState('');
@@ -265,7 +261,7 @@ function App() {
     typeWriter(initialMessage);
   };
 
-  const typeWriter = (text, index = 0) => {
+  const typeWriter = (text: any, index: number = 0) => {
     if (index < text.length) {
       setTypingText((prev) => prev + text.charAt(index));
       setTimeout(() => typeWriter(text, index + 1), 50); // Slowed down to 50ms
@@ -282,6 +278,9 @@ function App() {
 
   const handleSendMessage = () => {
     if (input.trim()) {
+      // use api here
+      console.log("chain", chain)
+      api.talk(input, chain.id).then((response) => {console.log(response)});
       setMessages([...messages, { text: input, sender: 'user' }]);
       setInput('');
       setIsLoading(true);
@@ -296,7 +295,7 @@ function App() {
     }
   };
 
-  const handleOptionClick = (option) => {
+  const handleOptionClick = (option: any) => {
     setShowOptions(false);
     setMessages(prevMessages => [...prevMessages, { 
       text: `You've chosen ${option}. Please sign to validate the transaction.`, 
@@ -325,6 +324,7 @@ function App() {
 
   useEffect(() => {
     if (chatBoxRef.current) {
+      // @ts-ignore
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
   }, [messages, typingText]);
@@ -340,7 +340,9 @@ function App() {
             <FeatureItem>✌️ The Agent takes care of your on-chain Actions</FeatureItem>
             <FeatureItem>👌 Sign and Validate in One Click</FeatureItem>
           </FeatureList>
-          <ConnectButton onClick={connectWallet}>Connect Wallet</ConnectButton>
+          <ThirdwebProvider>
+             <Wallet setChain={setChain} chain={chain} onConfirm={handleConnectConfirm} />
+          </ThirdwebProvider>
         </CenteredContent>
       ) : (
         <TwoColumnLayout>
@@ -352,11 +354,10 @@ function App() {
               <FeatureItem>✌️ The Agent takes care of your on-chain Actions</FeatureItem>
               <FeatureItem>👌 Sign and Validate in One Click</FeatureItem>
             </FeatureList>
-            <WalletInfo>
-              Connected: {account.slice(0, 6)}...{account.slice(-4)}
-              <br />
-              Balance: {balance} ETH
-            </WalletInfo>
+            
+          <ThirdwebProvider>
+             <Wallet setChain={setChain} chain={chain} onConfirm={handleConnectConfirm} />
+          </ThirdwebProvider>
           </LeftSection>
           <RightSection>
             <ChatBox ref={chatBoxRef}>
@@ -411,7 +412,6 @@ function App() {
         <WalletPopup>
           <h2>Connect Wallet</h2>
           <p>Do you want to connect your wallet?</p>
-          <PopupButton onClick={handleConnectConfirm}>Connect</PopupButton>
           <PopupButton onClick={handleConnectCancel}>Cancel</PopupButton>
         </WalletPopup>
       )}
